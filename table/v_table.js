@@ -1,42 +1,267 @@
 function Lpv_table(){
 
-    this.borderCollapse = "collapse" //-- separate or collapse
+    /*    
+    README
 
-    this.createTable = function(Columns, TableContents){
+   
+    ARCHITECTURE
+        -   borderCollapse = "collapse" is not used 
+            because its will make border of fixed head cell disappear when scrolling
+            and its will make border of head cells disappear when set position of thead to be sticky
+        _   use borderSpacing = "0px" instead of borderCollapse = "collapse"
 
-        this.Columns = Columns
+        -   priority of table cell style is 
+                1. this.styleForCells
+                2. this.styleForHeadCells or this.styleForContentCells
+                3. column.styleForCells
+                4. column.styleForHeadCells  column.styleForContentCells
 
-        //-- table parent
+        -   to make table always stays at least full width, set tableNode.style.minWidth = "100%" 
+            meaning: 
+                when table width < parent width -> extend to full width
+                when table width > parent width -> scroll
+
+        -   the first column can be fixed only when no colSpan (colSpan < 2) for all head cells in first column
+
+
+
+
+    CUSTOMIZATION OBJECT
+
+        -   to change dimensions of table view, change size of mainparentNode
+
+        for table cells style
+        -   to change style of all cells in table, edit this.styleForCells
+        -   to change style of all content cells, edit this.styleForHeadCells
+        -   to change style of all head cells, edit this.styleForContentCells
+        
+        for column cells style
+        -   to change style of cells in column , edit column.Style
+        -   to change style of only content cells in a column, edit column.styleForHeadCells
+        -   to change style of only head cells in a column, edit column.styleForContentCells
+
+        -   to make table alway extend to full width when table width is smaller than parent width,  set this.isTableAlwayFullParentWidth
+        
+    WARNING
+        -   borderCollapse = "collapse" is not used so borderWidth will be display double of the borderWidth value
+
+        -   this.fixTableheadRows() and this.fixCellsFirstColumn() only work when tableNode is displaying
+
+
+    DEPENDENCY
+
+        
+    */
+
+
+    this.styleForCells = {
+        borderWidth: "0.5px",
+        borderStyle: "solid",
+        borderColor: "lightgray",
+        padding: "4px"
+    }
+
+    this.styleForHeadCells = {
+        // backgroundColor: "lightblue"
+    }
+
+    this.styleForContentCells = {
+
+    }
+
+
+    this.isHeadFixed = true
+    this.isFirstColumnFixed = true 
+    this.isTableAlwayFullParentWidth = true;
+
+    this.columns = []
+    this.headRows = []
+    this.contentRowsById = {}
+
+  
+
+    this.createMainParentNode = function(){
+
         var mainParentNode = document.createElement("DIV")
         mainParentNode.style.width = "100%"
         mainParentNode.style.float = "left"
+        // mainParentNode.style.width = "300px"
+        // mainParentNode.style.height = "650px"
+        mainParentNode.style.float = "left"
+        mainParentNode.style.overflow = "auto"
+        mainParentNode.style.position = "relative" //--for fixed head and first column
 
-        var tableParentNode = document.createElement("DIV")
-        tableParentNode.style.width = "100%"
-        tableParentNode.style.float = "left"
+        this.mainParentNode = mainParentNode
 
+    }
+
+
+    this.createTable = function(columns, tableContents){
+
+        this.columns = columns
+
+        //-- table parent
+        
+        var mainParentNode = this.mainParentNode
 
         var tableNode = document.createElement("TABLE")
-        tableNode.style.borderCollapse = this.borderCollapse
+        tableNode.style.borderSpacing = "0px"
+        // tableNode.style.borderCollapse = "collapse"
 
-
-        //-- create content rows
-        for(var i=0; i<TableContents.length; i++){
-            var TableContent = TableContents[i]
-            var contentRowNode = this.createContentRow(Columns, TableContent)
-            tableNode.appendChild(contentRowNode)
-
+        if(this.isTableAlwayFullParentWidth){
+            //-- make table always at least being full with
+            tableNode.style.minWidth = "100%" 
         }
 
 
         //--create head row   
-        var headRowNode = this.createHeadRow(Columns)
-        tableNode.appendChild(headRowNode)
+        var theadNode = document.createElement("thead")
+        this.createheadRows(columns, theadNode)
+        tableNode.appendChild(theadNode)
+
+        this.theadNode = theadNode
 
 
-        tableParentNode.appendChild(tableNode)
+        //-- create content rows
+        var tbodyNode = document.createElement("tbody")
+        this.createContentRows(columns, tableContents, tbodyNode)
+        tableNode.appendChild(tbodyNode)
 
-        mainParentNode.appendChild(tableParentNode)
+        this.tbodyNode = tbodyNode
+
+
+
+        this.fixHeadAndFirstColumn()
+
+        mainParentNode.appendChild(tableNode)
+
+
+        // console.log(this.contentRowsById)
+
+        var i = 1650;
+
+        var rowContents = [{
+            id: i,
+            column_1: {
+                sub_1: "ss1_"+i
+            },
+            column_2: "The Column 1_ The Column 1_ The Column 1_ The Column 1_ The Column 1_ The Column 1_"+i,
+            column_3: "3_"+i,
+            column_4: {
+                sub_1: "s1_"+i,
+                sub_2: {
+                    sub_1: "ss1_"+i,
+                    sub_2: "ss2_"+i,
+                    sub_3: {
+                        sub_1: "s-ss1_"+i,
+                        sub_2: "s-ss2_"+i,
+                        sub_3: "s-ss3_"+i
+                    }
+                },
+                sub_3: "s3_"+i,
+                sub_4: {
+                    sub_1: "ss1_"+i
+                }
+            },
+            column_5: [buttonNode]
+        }]
+
+        this.insertNewRows(rowContents, "bottom")
+        
+        this.removeRows([3,5,8])
+    }
+
+
+    this.fixHeadAndFirstColumn = function(){
+        this.fixTableHeadRows()
+        this.fixCellsFirstColumn()
+    }
+
+
+    this.fixTableHeadRows = function(){
+
+        var theadNode  = this.theadNode
+        
+        if(!this.isHeadFixed) return
+
+        //-- ** make thead sticky will keep all sub head stay at their position without setting top position to all head cells
+        theadNode.style.position = "sticky"
+        theadNode.style.top = "0px"
+        theadNode.style.zIndex = 1
+        // theadNode.style.backgroundColor = "lightcoral"
+
+
+        // var headRows = this.headRows
+        // for(var index in headRows){
+        //     var rowNode = headRows[index].rowNode
+        //     var cellNodes = rowNode.children
+        //     for(var i=0; i<cellNodes.length; i++){
+        //         var cellNode = cellNodes[i]
+        //         cellNode.style.position = "sticky"
+        //         cellNode.style.top = cellNode.offsetTop+"px"
+        //         cellNode.style.zIndex = 1
+        //     }
+        // }
+    }
+
+
+    this.checkColumnSpanOfCellInFirstColumnHead = function(){
+
+        var isSpan = false
+
+        var headRows = this.headRows
+        for(var index in headRows){
+            var rowNode = headRows[index].rowNode
+            var firstCellNode = rowNode.firstChild
+            
+            if(firstCellNode.colSpan>1) isSpan = true
+            // if(firstCellNode.rowSpan>1) isSpan = true
+        }
+
+        return isSpan
+
+    }
+
+    this.fixCellsFirstColumn = function(){
+
+
+        if(!this.isFirstColumnFixed) return
+
+
+        var isSpanColumn = this.checkColumnSpanOfCellInFirstColumnHead()
+        if(isSpanColumn) return
+
+
+        //-- fix head
+
+        var headRows = this.headRows
+        for(var index in headRows){
+            var rowNode = headRows[index].rowNode
+            var firstCellNode = rowNode.firstChild
+            
+            firstCellNode.style.position = "sticky"
+            firstCellNode.style.left = "0px"
+            // firstCellNode.style.top = firstCellNode.offsetTop+"px"
+            // firstCellNode.style.zIndex = 2
+            // firstCellNode.style.backgroundColor = "lightgray"
+
+            if(firstCellNode.rowSpan>1) break;
+        }
+
+
+
+        //--fix content
+        var contentRowsById = this.contentRowsById
+        for(var rowId in contentRowsById){
+            var rowNode = contentRowsById[rowId].rowNode
+            var firstCellNode = rowNode.firstChild
+
+            firstCellNode.style.position = "sticky"
+            firstCellNode.style.left = "0px"
+            // firstCellNode.style.zIndex = "2"
+            // firstCellNode.style.backgroundColor = "lightblue"
+
+        }
     }
 
 
@@ -46,99 +271,280 @@ function Lpv_table(){
     }
 
 
-    this.createContentCellsInRow = function(Columns, TableContent, contentRowNode){
+    this.createContentCellsInRow = function(columns, tableContent, contentRow){
 
-        function createEachContentCell(Column, TableContent){
+        var createEachContentCell = (column, tableContent) => {
 
-            var contentKeyName = Column.contentKeyName
-            var content = TableContent[contentKeyName]
-            var contentText = (Array.isArray(content))? content.join(", "): content
+            var contentType = column.contentType
+            var contentKeyName = column.contentKeyName
 
             var cellNode = document.createElement("TD")
-            cellNode.innerHTML = contentText
-            this.addSyleToTableCell(cellNode, Column)
 
-            return cellNode
+            if(contentType==1){
+                var content = tableContent[contentKeyName]
+                var contentText = (Array.isArray(content))? content.join(", "): content
+                
+                cellNode.innerHTML = contentText
+            }
+            else if(contentType==2){
+                var contentElements = tableContent[contentKeyName]
+                for(var i=0; i<contentElements.length; i++){
+                    cellNode.appendChild(contentElements[i])
+                }
+            }
+            
+            // console.log(this)
+            this.addStyleToTableCell(cellNode, column)
 
+            
+
+            return {
+                cellNode:cellNode,
+                contentKeyName: contentKeyName
+            }
         }
 
-        var cellNodes = []
 
-        for(var i=0; i<Columns.length; i++){
+        for(var i=0; i<columns.length; i++){
             
-            var Column = Columns[i]
-            var Subcolumns = Column.Subcolumns
-            if(Subcolumns.length>0){
-                this.createContentCellsInRow(Subcolumns, TableContent, contentRowNode)
+            var column = columns[i]
+            var contentKeyName = column.contentKeyName
+            var subcolumns = column.subcolumns
+            
+            if(subcolumns.length>0){
+                var Subcontents = tableContent[contentKeyName]
+                this.createContentCellsInRow(subcolumns, Subcontents, contentRow)
             }
             else{
-                var cellNode = createEachContentCell(Column, TableContent)
-                contentRowNode.appendChild(cellNode)
+                var cell = createEachContentCell(column, tableContent)
+                contentRow.rowNode.appendChild(cell.cellNode)
+                contentRow.cellsByKey[cell.contentKeyName] = cell
             }
             
         }
-        
-        return cellNodes;
-        
     }
 
 
-
-    this.createContentRow = function(Columns, TableContent){
+    this.createEachContentRow = function(columns, tableContent){
 
         var contentRowNode = this.createRowNode()
+        var contentRow = {
+            rowNode: contentRowNode,
+            cellsByKey: {}
+        }
 
-        this.createContentCellsInRow(Columns, TableContent, contentRowNode)
-        
-        return contentRowNode;
+        this.createContentCellsInRow(columns, tableContent, contentRow)
+        this.contentRowsById[tableContent.id] = contentRow
+
+        return contentRow
+
     }
 
 
-    this.createHeadRow = function(Columns){
+    this.createContentRows = function(columns, tableContents, tbodyNode){
+        for(var i in tableContents){
+            var tableContent = tableContents[i]
+            var contentRow = this.createEachContentRow(columns, tableContent)
+            tbodyNode.appendChild(contentRow.rowNode)    
+        }
+    }
 
-        var headRowNode = this.createRowNode()
-        
-        for(var i=0; i<Columns.length; i++){
-            var Column = Columns[i]
+
+    this.getColumnSpan = function(column){
+
+        // var subcolumns = column.subcolumns
+        // return subcolumns.length
+
+
+        var getNumber = (column, spanNumber) => {
+           
+            var subcolumns = column.subcolumns
+            var spanNumber = subcolumns.length
+
+            for(var i=0; i<subcolumns.length; i++){
+                //-- set level
+                var subcolumn = subcolumns[i]
+                
+                var return_spanNumber = getNumber(subcolumn)
+                if(return_spanNumber>1) spanNumber += return_spanNumber-1
+                
+            }
+            return spanNumber
+        }
+
+        return getNumber(column, 0)
+
+    }
+
+    this.getRowSpan = function(column, finalLevelOrder){
+
+        var subcolumns = column.subcolumns
+
+        if(subcolumns.length>0){
+            return 0
+        }
+        else{
+            return finalLevelOrder-column.level+1
+        }
+    }
+
+
+    this.createHeadCellsInRow = function(columns, targetLevel, finalLevelOrder, headRowNode){
+
+
+        for(var i=0; i<columns.length; i++){
+
+            var column = columns[i]
+            var level = column.level
+            var subcolumns = column.subcolumns
+
+            if(subcolumns.length>0){
+                this.createHeadCellsInRow(subcolumns, targetLevel, finalLevelOrder, headRowNode)
+            }
+
+            if(level!=targetLevel) continue
 
             var headCellNOde = document.createElement("TH")
-            headCellNOde.innerHTML = Column.name
-            this.addSyleToTableCell(headCellNOde, Column, "head")
+            headCellNOde.innerHTML = column.name
+
+
+            //-- column span
+            var columnSpan = this.getColumnSpan(column)
+            if(columnSpan>1) headCellNOde.colSpan =  columnSpan
+            
+            //-- row span
+            var rowSpan = this.getRowSpan(column, finalLevelOrder)
+            if(rowSpan>1) headCellNOde.rowSpan = rowSpan
+            
+            //-- add style
+            this.addStyleToTableCell(headCellNOde, column, "head")
 
             headRowNode.appendChild(headCellNOde)
         }
 
-        return headRowNode
     }
 
 
-    this.addSyleToTableCell = function(cellNode, Column, headOrContent = "content"){
+    this.createheadRows = function(columns, tableNode){
 
-        //-- apply general style first and then apply head of content style
+        var finalLevelOrder = this.setColumnLevelAndParent(columns)
+        
+        for(var i=0; i<=finalLevelOrder; i++){
+            var headRowNode = this.createRowNode()
+            this.createHeadCellsInRow(columns, i, finalLevelOrder, headRowNode)
+            tableNode.appendChild(headRowNode)
 
-        var Style_general = Column.Style
-        var Style_specific = (headOrContent=="head")? Column.StyleForHead: Column.StyleForContent
-        var Styles = [Style_general, Style_specific]
+            this.headRows.push({rowNode: headRowNode})
+        } 
+    }
 
-        for(var i=0; i<Styles.length; i++){
-            var Style = Styles[i]
-            for(var styleName in Style){
-                cellNode.style[styleName] = Style[styleName]
+
+    this.setColumnLevelAndParent = function(columns){
+
+        var setLevel = (columns, level, parentColumn) => {
+           
+            var finalLevelOrder = level
+
+            for(var i=0; i<columns.length; i++){
+                //-- set level
+                var column = columns[i]
+                column.level = level
+                column.parentColumn = parentColumn
+                //-- check subcolumn
+                var subcolumns = column.subcolumns
+                if(subcolumns.length>0){
+                    var newLevel = setLevel(subcolumns, level+1, column)
+                    if(newLevel>finalLevelOrder) finalLevelOrder = newLevel
+                }
+            }
+            return finalLevelOrder
+        }
+
+        return setLevel(columns, 0, null)
+
+    }
+
+    this.addStyleToTableCell = function(cellNode, column, headOrContent = "content"){
+
+        // console.log(cellNode.innerHTML)
+
+        //-- apply general style  and then apply head of content style
+
+        var all_cells =  this.styleForCells
+        var all_specificCells = (headOrContent=="head")? this.styleForHeadCells : this.styleForContentCells 
+        
+        var column_cells = column.Style
+        var column_specificCells = (headOrContent=="head")? column.styleForHeadCells: column.styleForContentCells
+        
+        var styles = [all_cells, all_specificCells, column_cells, column_specificCells]
+
+        for(var i=0; i<styles.length; i++){
+            var style = styles[i]
+            for(var styleName in style){
+                cellNode.style[styleName] = style[styleName]
+            }
+        }
+
+        // console.log(cellNode.innerHTML)
+        // console.log(cellNode.style.border)
+    }
+
+
+    this.insertNewRows = function(rowContents, insertPosition = "top"){
+        for(var id in rowContents){
+            var rowContent = rowContents[id]
+            var contentRow = this.createEachContentRow(this.columns, rowContent)
+            if(insertPosition=="top"){
+                this.tbodyNode.insertBefore(contentRow.rowNode, this.tbodyNode.firstChild)    
+            }
+            else{
+                this.tbodyNode.appendChild(contentRow.rowNode)    
             }
         }
     }
 
+
+    this.removeRows = function(rowIds){
+
+        var contentRowsById = this.contentRowsById
+
+        for(var i in rowIds){
+            var rowId = rowIds[i]
+            var contentRow = contentRowsById[rowId]
+            
+
+            //-- remove element
+            contentRow.rowNode.remove()
+            //-- remove from  object of rows
+            delete contentRowsById[rowId];  
+        }
+    }
+
+    
+    this._init = (function(){
+        this.createMainParentNode()
+    }).bind(this)()
+
 }
 
 
 
 
-function Lpv_column_v(){
+function Lpv_column(){
     this.name = "Colunn name"
     this.contentKeyName = "none"
-    this.Style = {} //--general
-    this.StyleForHead = {}
-    this.StyleForContent = {}
+    this.contentType = 1 //-- 1 = normal text, 2 = html node
+    this.styleForCells = {} //--general
+    this.styleForHeadCells = {}
+    this.styleForContentCells = {}
     this.isDisplay = true
-    this.Subcolumns = []
+    this.subcolumns = []
 }
+
+
+
+/* 
+    array: arrays
+    object: object
+
+*/
