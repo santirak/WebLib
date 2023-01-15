@@ -135,40 +135,6 @@ function Lpv_table(){
 
         mainParentNode.appendChild(tableNode)
 
-
-        // console.log(this.contentRowsById)
-
-        var i = 1650;
-
-        var rowContents = [{
-            id: i,
-            column_1: {
-                sub_1: "ss1_"+i
-            },
-            column_2: "The Column 1_ The Column 1_ The Column 1_ The Column 1_ The Column 1_ The Column 1_"+i,
-            column_3: "3_"+i,
-            column_4: {
-                sub_1: "s1_"+i,
-                sub_2: {
-                    sub_1: "ss1_"+i,
-                    sub_2: "ss2_"+i,
-                    sub_3: {
-                        sub_1: "s-ss1_"+i,
-                        sub_2: "s-ss2_"+i,
-                        sub_3: "s-ss3_"+i
-                    }
-                },
-                sub_3: "s3_"+i,
-                sub_4: {
-                    sub_1: "ss1_"+i
-                }
-            },
-            column_5: [buttonNode]
-        }]
-
-        this.insertNewRows(rowContents, "bottom")
-        
-        this.removeRows([3,5,8])
     }
 
 
@@ -520,7 +486,7 @@ function Lpv_table(){
         }
     }
 
-    
+
     this._init = (function(){
         this.createMainParentNode()
     }).bind(this)()
@@ -540,11 +506,3 @@ function Lpv_column(){
     this.isDisplay = true
     this.subcolumns = []
 }
-
-
-
-/* 
-    array: arrays
-    object: object
-
-*/
