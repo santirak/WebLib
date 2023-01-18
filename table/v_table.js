@@ -5,7 +5,7 @@ function Lpv_table(){
 
    
     ARCHITECTURE
-        -   borderCollapse = "collapse" is not used 
+        -   borderCollapse = "collapse" is not used (borderCollapse = "separate" is used instead) 
             because its will make border of fixed head cell disappear when scrolling
             and its will make border of head cells disappear when set position of thead to be sticky
         _   use borderSpacing = "0px" instead of borderCollapse = "collapse"
@@ -62,7 +62,7 @@ function Lpv_table(){
     }
 
     this.styleForHeadCells = {
-        // backgroundColor: "lightblue"
+        backgroundColor: "#f2f2f2"
     }
 
     this.styleForContentCells = {
@@ -106,7 +106,7 @@ function Lpv_table(){
 
         var tableNode = document.createElement("TABLE")
         tableNode.style.borderSpacing = "0px"
-        // tableNode.style.borderCollapse = "collapse"
+        tableNode.style.borderCollapse = "separate" //collapse
 
         if(this.isTableAlwayFullParentWidth){
             //-- make table always at least being full with
@@ -118,7 +118,7 @@ function Lpv_table(){
         var theadNode = document.createElement("thead")
         this.createheadRows(columns, theadNode)
         tableNode.appendChild(theadNode)
-
+        // theadNode.style.backgroundColor = "pink"
         this.theadNode = theadNode
 
 
@@ -342,6 +342,7 @@ function Lpv_table(){
 
     }
 
+
     this.getRowSpan = function(column, finalLevelOrder){
 
         var subcolumns = column.subcolumns
@@ -430,6 +431,7 @@ function Lpv_table(){
 
     }
 
+
     this.addStyleToTableCell = function(cellNode, column, headOrContent = "content"){
 
         // console.log(cellNode.innerHTML)
@@ -468,6 +470,63 @@ function Lpv_table(){
             }
         }
     }
+
+
+    this.removeContentsInRow = function(contentRow){
+        contentRow.cellsByKey = []
+        contentRow.rowNode.innerHTML = ""
+    }
+
+    this.updateContentInRowsByReCreateContentElement = function(rowContents){
+        var columns = this.columns
+
+        for(var index in rowContents){
+
+            var rowContent = rowContents[index]
+            var id = rowContent.id
+            
+            var contentRow = this.contentRowsById[id]
+
+            this.removeContentsInRow(contentRow)
+            this.createContentCellsInRow(columns, rowContent, contentRow)
+           
+        }
+    }
+
+    // this.updateContentInRows = function(rowContents){
+
+    //     function updateContent(columns, contentRow, rowContent){
+
+    //         for(var index in columns){
+    //             var column = columns[index]
+    //             var contentKeyName = column.contentKeyName
+                
+    //             var subcolumns = column.subcolumns
+    //             if(subcolumns.length>0){
+    //                 updateContent(subcolumns, contentRow, rowContent[contentKeyName])
+    //             }
+    //             else{
+    //                 contentRow.cellsByKey[contentKeyName].cellNode.innerHTML = rowContent[contentKeyName]
+    //             }
+    //         }
+
+
+    //     }
+
+    //     var columns = this.columns
+
+    //     for(var index in rowContents){
+
+    //         var rowContent = rowContents[index]
+    //         var id = rowContent.id
+            
+    //         var contentRow = this.contentRowsById[id]
+
+    //         updateContent(columns, contentRow, rowContent)
+
+    //     }
+
+    // }
 
 
     this.removeRows = function(rowIds){
